@@ -27,6 +27,8 @@ In 2022, the *Encyclopaedia Britannica* called it *"the most familiar lettered s
 
 ## Repository Contents
 
+**Repository:** [https://github.com/MushroomFleet/sator-rotas-square](https://github.com/MushroomFleet/sator-rotas-square)
+
 ```
 sator-rotas-square/
 ├── Sator-Rotas-Square-grounding.md    ← Rich historical & technical reference
@@ -219,6 +221,28 @@ The 25 letters (A×4, E×4, O×4, R×4, T×4, N×1, P×2, S×2) can be rearrange
 ## Licence
 
 MIT — use freely, cite where appropriate.
+
+---
+
+## 📚 Citation
+
+### Academic Citation
+
+If you use this codebase in your research or project, please cite:
+
+```bibtex
+@software{sator_rotas_square,
+  title = {Sator Rotas Square: A Python & Interactive Exploration of the Ancient Latin Palindrome},
+  author = {Drift Johnson},
+  year = {2025},
+  url = {https://github.com/MushroomFleet/sator-rotas-square},
+  version = {1.0.0}
+}
+```
+
+### Donate
+
+[![Ko-Fi](https://cdn.ko-fi.com/cdn/kofi3.png?v=3)](https://ko-fi.com/driftjohnson)
 
 ---
 
