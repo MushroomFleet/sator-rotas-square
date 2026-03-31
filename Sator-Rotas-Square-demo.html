@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sator Rotas Square — Interactive Demo</title>
+
+  <!-- React & Babel -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --stone:   #1a1712;
+      --ink:     #0d0c0a;
+      --parchment: #f5eedc;
+      --aged:    #e8dfc8;
+      --worn:    #c9b98a;
+      --rust:    #8b3a2a;
+      --gold:    #c9922a;
+      --bronze:  #7a5c1e;
+      --glow:    #e8c56a;
+      --muted:   #6b5e42;
+      --active:  #c9922a;
+      --cross:   #8b3a2a;
+      --pn:      #2a5c3a;
+
+      --ff-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+      --ff-body:    'EB Garamond', 'Palatino Linotype', Georgia, serif;
+      --ff-mono:    'Courier New', monospace;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--ink);
+      color: var(--parchment);
+      font-family: var(--ff-body);
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grain overlay ────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    #root {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── Typography ───────────────────────────────────────────── */
+    h1, h2, h3 { font-family: var(--ff-display); letter-spacing: 0.08em; }
+
+    .page-title {
+      text-align: center;
+      padding: 3rem 1rem 1rem;
+    }
+    .page-title h1 {
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 900;
+      color: var(--glow);
+      text-shadow: 0 0 40px rgba(201,146,42,0.35);
+      letter-spacing: 0.18em;
+      line-height: 1.15;
+    }
+    .page-title .subtitle {
+      font-family: var(--ff-body);
+      font-style: italic;
+      color: var(--worn);
+      font-size: 1rem;
+      margin-top: 0.6rem;
+      letter-spacing: 0.03em;
+    }
+    .page-title .epoch {
+      font-family: var(--ff-display);
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-top: 1rem;
+    }
+
+    .ornament {
+      text-align: center;
+      color: var(--gold);
+      font-size: 1.3rem;
+      letter-spacing: 0.5rem;
+      margin: 1.5rem 0;
+      opacity: 0.6;
+    }
+
+    /* ── Panel / Card ─────────────────────────────────────────── */
+    .panel {
+      background: linear-gradient(135deg, #1f1c14 0%, #17140e 100%);
+      border: 1px solid rgba(201,146,42,0.2);
+      border-radius: 2px;
+      padding: 1.5rem;
+      margin-bottom: 1.2rem;
+      position: relative;
+    }
+    .panel::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: 2px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+    .panel-title {
+      font-family: var(--ff-display);
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .panel-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, rgba(201,146,42,0.4), transparent);
+    }
+
+    /* ── Main layout ──────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.2rem;
+      align-items: start;
+    }
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── The Square ───────────────────────────────────────────── */
+    .square-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .square-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      padding: 16px;
+      background: #12100a;
+      border: 2px solid rgba(201,146,42,0.35);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.8),
+        0 0 60px rgba(201,146,42,0.08),
+        inset 0 0 40px rgba(0,0,0,0.4);
+    }
+
+    .sq-cell {
+      width: 54px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--ff-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: #1e1a10;
+      border: 1px solid rgba(201,146,42,0.15);
+      color: var(--aged);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      position: relative;
+      user-select: none;
+    }
+    .sq-cell:hover {
+      background: #2a2418;
+      color: var(--glow);
+      border-color: rgba(201,146,42,0.5);
+      z-index: 2;
+    }
+    .sq-cell.highlighted-word {
+      background: rgba(201,146,42,0.18);
+      color: var(--glow);
+      border-color: rgba(201,146,42,0.55);
+      box-shadow: 0 0 12px rgba(201,146,42,0.2);
+    }
+    .sq-cell.highlighted-cross {
+      background: rgba(139,58,42,0.25);
+      color: #f0a090;
+      border-color: rgba(139,58,42,0.55);
+      box-shadow: 0 0 12px rgba(139,58,42,0.3);
+    }
+    .sq-cell.highlighted-pn {
+      background: rgba(42,92,58,0.25);
+      color: #90e0a0;
+      border-color: rgba(42,92,58,0.55);
+      box-shadow: 0 0 12px rgba(42,92,58,0.3);
+    }
+    .sq-cell.highlighted-path {
+      background: rgba(100,70,180,0.3);
+      color: #c0b0ff;
+      border-color: rgba(100,70,180,0.55);
+      box-shadow: 0 0 12px rgba(100,70,180,0.3);
+    }
+    .sq-cell.centre {
+      border-color: rgba(201,146,42,0.35);
+    }
+
+    @media (max-width: 500px) {
+      .sq-cell { width: 44px; height: 44px; font-size: 1.1rem; }
+    }
+
+    /* ── Form label ───────────────────────────────────────────── */
+    .form-badge {
+      font-family: var(--ff-display);
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── Mode buttons ─────────────────────────────────────────── */
+    .mode-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .mode-btn {
+      background: #1a1710;
+      border: 1px solid rgba(201,146,42,0.25);
+      color: var(--worn);
+      font-family: var(--ff-display);
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 0.45rem 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 1px;
+    }
+    .mode-btn:hover {
+      border-color: rgba(201,146,42,0.55);
+      color: var(--glow);
+    }
+    .mode-btn.active {
+      background: rgba(201,146,42,0.15);
+      border-color: var(--gold);
+      color: var(--glow);
+    }
+
+    /* ── Info pane ────────────────────────────────────────────── */
+    .info-section {
+      margin-top: 0;
+    }
+
+    .word-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.8rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(201,146,42,0.1);
+      cursor: pointer;
+      transition: background 0.12s;
+      border-radius: 2px;
+      padding-left: 0.4rem;
+    }
+    .word-row:hover, .word-row.active {
+      background: rgba(201,146,42,0.07);
+    }
+    .word-label {
+      font-family: var(--ff-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--glow);
+      letter-spacing: 0.1em;
+      min-width: 4rem;
+    }
+    .word-meaning {
+      font-family: var(--ff-body);
+      font-size: 0.82rem;
+      color: var(--worn);
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    /* ── Reading directions ───────────────────────────────────── */
+    .reading-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .reading-item {
+      background: #12100a;
+      border: 1px solid rgba(201,146,42,0.12);
+      padding: 0.5rem 0.7rem;
+      border-radius: 2px;
+    }
+    .reading-dir {
+      font-family: var(--ff-display);
+      font-size: 0.52rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    .reading-text {
+      font-family: var(--ff-mono);
+      font-size: 0.78rem;
+      color: var(--aged);
+      letter-spacing: 0.12em;
+    }
+
+    /* ── Symmetry badges ──────────────────────────────────────── */
+    .sym-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .sym-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #12100a;
+      border: 1px solid rgba(201,146,42,0.1);
+      padding: 0.45rem 0.6rem;
+      border-radius: 2px;
+    }
+    .sym-mark {
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .sym-label {
+      font-size: 0.73rem;
+      color: var(--worn);
+      font-family: var(--ff-body);
+    }
+
+    /* ── Cipher panel ─────────────────────────────────────────── */
+    .cipher-input {
+      background: #0f0e09;
+      border: 1px solid rgba(201,146,42,0.3);
+      color: var(--parchment);
+      font-family: var(--ff-mono);
+      font-size: 0.9rem;
+      padding: 0.6rem 0.8rem;
+      width: 100%;
+      border-radius: 1px;
+      outline: none;
+      letter-spacing: 0.08em;
+    }
+    .cipher-input:focus {
+      border-color: rgba(201,146,42,0.6);
+      box-shadow: 0 0 0 2px rgba(201,146,42,0.08);
+    }
+    .cipher-output {
+      font-family: var(--ff-mono);
+      font-size: 0.85rem;
+      color: var(--glow);
+      background: #0a0907;
+      border: 1px solid rgba(201,146,42,0.15);
+      padding: 0.6rem 0.8rem;
+      border-radius: 1px;
+      min-height: 2.2rem;
+      letter-spacing: 0.1em;
+      word-break: break-all;
+    }
+    .cipher-label {
+      font-family: var(--ff-display);
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+      margin-top: 0.7rem;
+    }
+
+    /* ── Pater Noster cross ───────────────────────────────────── */
+    .pn-cross {
+      font-family: var(--ff-mono);
+      font-size: 0.82rem;
+      color: #90e0a0;
+      line-height: 1.7;
+      text-align: center;
+      letter-spacing: 0.15em;
+      background: #0a120e;
+      border: 1px solid rgba(42,92,58,0.3);
+      padding: 1rem;
+      border-radius: 2px;
+    }
+    .pn-remainder {
+      font-size: 0.75rem;
+      color: var(--worn);
+      font-style: italic;
+      text-align: center;
+      margin-top: 0.6rem;
+    }
+
+    /* ── History timeline ─────────────────────────────────────── */
+    .timeline {
+      position: relative;
+      padding-left: 1.2rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0.4rem;
+      top: 0.3rem;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, rgba(201,146,42,0.5), transparent);
+    }
+    .timeline-item {
+      position: relative;
+      padding: 0 0 0.8rem 0.8rem;
+    }
+    .timeline-item::before {
+      content: '◆';
+      position: absolute;
+      left: -0.85rem;
+      top: 0.05rem;
+      font-size: 0.45rem;
+      color: var(--gold);
+    }
+    .tl-date {
+      font-family: var(--ff-display);
+      font-size: 0.65rem;
+      color: var(--gold);
+      letter-spacing: 0.15em;
+    }
+    .tl-text {
+      font-size: 0.8rem;
+      color: var(--worn);
+      margin-top: 0.1rem;
+      line-height: 1.4;
+    }
+
+    /* ── Tab nav ──────────────────────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-bottom: 1rem;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid rgba(201,146,42,0.2);
+      color: var(--muted);
+      font-family: var(--ff-display);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 1px;
+    }
+    .tab-btn:hover { color: var(--worn); border-color: rgba(201,146,42,0.4); }
+    .tab-btn.active {
+      background: rgba(201,146,42,0.12);
+      border-color: var(--gold);
+      color: var(--glow);
+    }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(201,146,42,0.15);
+    }
+    .footer p {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-style: italic;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Transition ───────────────────────────────────────────── */
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useCallback, useMemo } = React;
+
+    // ── Data ──────────────────────────────────────────────────────────────────
+
+    const GRID = [
+      ['S','A','T','O','R'],
+      ['A','R','E','P','O'],
+      ['T','E','N','E','T'],
+      ['O','P','E','R','A'],
+      ['R','O','T','A','S'],
+    ];
+
+    const WORDS = ['SATOR','AREPO','TENET','OPERA','ROTAS'];
+
+    const MEANINGS = {
+      SATOR: 'Sower, founder, originator — often divine. The Latin term for Jupiter as the supreme sower.',
+      AREPO: 'Unknown word — appears nowhere else in Latin. Likely a proper name, possibly Celtic or invented to complete the palindrome.',
+      TENET: 'He/she/it holds, keeps, preserves, sustains (from tenere). The only word that is itself a palindrome.',
+      OPERA: 'Works, care, effort, labour (from opus). Also the ablative case meaning "through work."',
+      ROTAS: 'Wheels (from rota). Can also refer to a plough, or to the celestial wheels governing the heavens.',
+    };
+
+    const TRANSLATIONS = [
+      '"Arepo the sower holds the wheels with care."',
+      '"The sower Arepo guides the plough with skill."',
+      '"The Creator preserves his works." (boustrophedon)',
+      '"As you sow, so shall you reap." (boustrophedon)',
+    ];
+
+    const HISTORY = [
+      { date: 'Pre-62 CE',    text: 'Earliest known example found at Pompeii (Palestra Grande), in ROTAS form — before the earthquake of AD 62.' },
+      { date: 'Pre-79 CE',    text: 'Second Pompeii example at the house of Publius Paquius Proculus. Eruption of Vesuvius buries both.' },
+      { date: '~185 CE',      text: 'Fragment found on Roman pottery at a garrison site in Manchester, Roman Britain.' },
+      { date: '~200 CE',      text: 'Four examples etched onto military building walls at Dura-Europos, Syria.' },
+      { date: '6th century',  text: 'SATOR form (inverted) begins to dominate. Christian associations grow stronger.' },
+      { date: '1200s',        text: 'Square appears in medical texts — carved into bread crusts as a cure for rabies and fever.' },
+      { date: '1400s',        text: 'Inscribed on German building walls to protect against fire.' },
+      { date: '1926',         text: 'Pater Noster theory proposed independently by three scholars — the 25 letters rearrange into a cross spelling PATERNOSTER twice.' },
+      { date: '1936',         text: 'Pompeii examples confirmed pre-Christian, undermining the Pater Noster origin theory.' },
+      { date: '2020',         text: 'Christopher Nolan\'s film Tenet uses the square as structural blueprint: villain = Sator, agency = Tenet, security firm = Rotas.' },
+      { date: '2022',         text: 'Encyclopaedia Britannica declares it "the most familiar lettered square in the Western world."' },
+    ];
+
+    const SYMMETRY_PROPS = [
+      { label: 'Point symmetry (180°)',       check: true,  desc: 'grid[r][c] == grid[4−r][4−c]' },
+      { label: 'Transpose symmetry',          check: true,  desc: 'grid[r][c] == grid[c][r]' },
+      { label: 'Row 3 is a palindrome',       check: true,  desc: 'TENET reads same forwards & back' },
+      { label: 'Column 3 is a palindrome',    check: true,  desc: 'T-E-N-E-T vertically' },
+      { label: 'Rows == Columns',             check: true,  desc: 'Same words in every direction' },
+      { label: 'Unique letters only 8',       check: true,  desc: 'A E N O P R S T' },
+    ];
+
+    // ── Cipher logic ───────────────────────────────────────────────────────────
+
+    const POSITION_MAP = {};
+    GRID.forEach((row, r) => row.forEach((ch, c) => {
+      if (!(ch in POSITION_MAP)) POSITION_MAP[ch] = [r, c];
+    }));
+
+    function encodeText(text) {
+      return text.toUpperCase().split('').map(ch => {
+        if (ch in POSITION_MAP) {
+          const [r, c] = POSITION_MAP[ch];
+          return `${r}${c}`;
+        }
+        return ch;
+      }).join(' ');
+    }
+
+    // ── Cross / path highlight sets ────────────────────────────────────────────
+
+    const CROSS_CELLS = new Set(
+      [...Array(5)].flatMap((_, i) => [`2,${i}`, `${i},2`])
+    );
+
+    function getWordCells(word) {
+      const cells = new Set();
+      WORDS.forEach((w, wi) => {
+        if (w === word) {
+          // row
+          for (let c = 0; c < 5; c++) cells.add(`${wi},${c}`);
+          // col
+          for (let r = 0; r < 5; r++) cells.add(`${r},${wi}`);
+        }
+      });
+      return cells;
+    }
+
+    // ── Main App ───────────────────────────────────────────────────────────────
+
+    function App() {
+      const [mode, setMode]         = useState('words');     // words | cross | pn | cipher | sym | history
+      const [activeWord, setWord]   = useState(null);
+      const [formType, setForm]     = useState('SATOR');
+      const [cipherText, setCipher] = useState('SATOR');
+
+      const displayGrid = formType === 'ROTAS'
+        ? GRID.slice().reverse()
+        : GRID;
+
+      const cellClass = useCallback((r, c) => {
+        const key = `${r},${c}`;
+        let cls = 'sq-cell';
+        if (r === 2 && c === 2) cls += ' centre';
+
+        if (mode === 'cross') {
+          if (CROSS_CELLS.has(key)) cls += ' highlighted-cross';
+        } else if (mode === 'words' && activeWord) {
+          const wi = WORDS.indexOf(activeWord);
+          if (r === wi || c === wi) cls += ' highlighted-word';
+        } else if (mode === 'pn') {
+          cls += ' highlighted-pn';
+        } else if (mode === 'cipher' && cipherText) {
+          const letters = cipherText.toUpperCase().replace(/[^A-Z]/g,'').split('');
+          const matched = letters.filter(ch => ch in POSITION_MAP)
+            .map(ch => POSITION_MAP[ch]);
+          if (matched.some(([mr, mc]) => mr === r && mc === c)) {
+            cls += ' highlighted-path';
+          }
+        }
+        return cls;
+      }, [mode, activeWord, cipherText]);
+
+      const currentGrid = formType === 'ROTAS'
+        ? [[...GRID[4]],[...GRID[3]],[...GRID[2]],[...GRID[1]],[...GRID[0]]]
+        : GRID;
+
+      return (
+        <div>
+          <div className="page-title">
+            <div className="epoch">Pompeii · c. 62 CE → Present Day</div>
+            <h1>SATOR · ROTAS · SQUARE</h1>
+            <p className="subtitle">
+              The world's most famous lettered magic square — a 2,000-year-old Latin palindrome
+            </p>
+          </div>
+
+          <div className="ornament">✦ · · · ✦ · · · ✦</div>
+
+          <div className="layout">
+
+            {/* ── Left: The Square ──────────────────────────────── */}
+            <div className="square-wrapper">
+              <div className="form-badge">{formType} FORM</div>
+              <div className="square-grid">
+                {currentGrid.map((row, r) =>
+                  row.map((ch, c) => (
+                    <div
+                      key={`${r}-${c}`}
+                      className={cellClass(r, c)}
+                      title={`Row ${r+1}, Col ${c+1}`}
+                    >
+                      {ch}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Form toggle */}
+              <div className="mode-buttons">
+                {['SATOR','ROTAS'].map(f => (
+                  <button
+                    key={f}
+                    className={`mode-btn${formType === f ? ' active' : ''}`}
+                    onClick={() => setForm(f)}
+                  >{f} FORM</button>
+                ))}
+              </div>
+
+              {/* Mode buttons */}
+              <div className="mode-buttons" style={{marginTop:'0.2rem'}}>
+                {[
+                  ['words','Words'],
+                  ['cross','Tenet Cross'],
+                  ['pn','Pater Noster'],
+                  ['cipher','Cipher'],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    className={`mode-btn${mode === id ? ' active' : ''}`}
+                    onClick={() => { setMode(id); if(id!=='words') setWord(null); }}
+                  >{label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Right: Info panels ────────────────────────────── */}
+            <div className="info-section">
+
+              {/* Tab nav */}
+              <div className="tab-nav">
+                {[
+                  ['words','The Words'],
+                  ['readings','Readings'],
+                  ['sym','Symmetry'],
+                  ['history','History'],
+                  ['pn','Pater Noster'],
+                  ['cipher','Cipher'],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    className={`tab-btn${mode === id ? ' active' : ''}`}
+                    onClick={() => setMode(id)}
+                  >{label}</button>
+                ))}
+              </div>
+
+              {/* ── Words panel ──── */}
+              {mode === 'words' && (
+                <div className="fade-in">
+                  <div className="panel">
+                    <div className="panel-title">Five Words</div>
+                    {WORDS.map(w => (
+                      <div
+                        key={w}
+                        className={`word-row${activeWord === w ? ' active' : ''}`}
+                        onClick={() => setWord(activeWord === w ? null : w)}
+                      >
+                        <span className="word-label">{w}</span>
+                        <span className="word-meaning">{MEANINGS[w]}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="panel">
+                    <div className="panel-title">Translations</div>
+                    {TRANSLATIONS.map((t, i) => (
+                      <div key={i} style={{
+                        fontStyle:'italic', color:'var(--worn)', fontSize:'0.82rem',
+                        padding:'0.35rem 0', borderBottom:'1px solid rgba(201,146,42,0.08)'
+                      }}>{t}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Readings panel ── */}
+              {mode === 'readings' && (
+                <div className="fade-in">
+                  <div className="panel">
+                    <div className="panel-title">All Reading Directions</div>
+                    <p style={{fontSize:'0.8rem',color:'var(--worn)',marginBottom:'0.8rem',fontStyle:'italic'}}>
+                      The square reads identically in all four cardinal directions — a true two-dimensional palindrome.
+                    </p>
+                    <div className="reading-grid">
+                      {[
+                        ['→  Left to Right',  WORDS.join(' · ')],
+                        ['←  Right to Left',  [...WORDS].reverse().join(' · ')],
+                        ['↓  Top to Bottom',  WORDS.join(' · ')],
+                        ['↑  Bottom to Top',  [...WORDS].reverse().join(' · ')],
+                      ].map(([dir, text]) => (
+                        <div key={dir} className="reading-item">
+                          <span className="reading-dir">{dir}</span>
+                          <span className="reading-text">{text}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:'1rem'}}>
+                      <div className="panel-title">Boustrophedon Reading</div>
+                      <p style={{fontSize:'0.8rem',color:'var(--worn)',fontStyle:'italic'}}>
+                        Reading in alternating directions (left→right, then right→left, etc.) reveals:
+                      </p>
+                      <div style={{
+                        fontFamily:'var(--ff-mono)', fontSize:'0.82rem', color:'var(--glow)',
+                        background:'#0a0907', border:'1px solid rgba(201,146,42,0.2)',
+                        padding:'0.6rem 0.8rem', marginTop:'0.5rem', letterSpacing:'0.05em'
+                      }}>
+                        SATOR OPERA TENET TENET OPERA SATOR
+                      </div>
+                      <p style={{fontSize:'0.75rem',color:'var(--muted)',marginTop:'0.4rem',fontStyle:'italic'}}>
+                        "As you sow, so shall you reap" — or theologically: "The Creator maintains his works."
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Symmetry panel ── */}
+              {mode === 'sym' && (
+                <div className="fade-in">
+                  <div className="panel">
+                    <div className="panel-title">Symmetry Properties</div>
+                    <div className="sym-grid">
+                      {SYMMETRY_PROPS.map((s, i) => (
+                        <div key={i} className="sym-item">
+                          <span className="sym-mark">{s.check ? '✓' : '✗'}</span>
+                          <div>
+                            <div style={{fontSize:'0.75rem',color:'var(--aged)',fontFamily:'var(--ff-body)'}}>{s.label}</div>
+                            <div style={{fontSize:'0.65rem',color:'var(--muted)',fontFamily:'var(--ff-mono)',marginTop:'0.15rem'}}>{s.desc}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{marginTop:'1rem',fontSize:'0.78rem',color:'var(--worn)',lineHeight:1.6}}>
+                      <p>The grid is equal to its own <strong style={{color:'var(--gold)'}}>transpose</strong> — meaning rows and columns are interchangeable.
+                      It is also symmetric under <strong style={{color:'var(--gold)'}}>180° rotation</strong>: each cell maps to the cell diametrically opposite through the centre.
+                      These dual symmetries mean the square possesses the maximum possible palindromic structure for a 5×5 word grid.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── History panel ── */}
+              {mode === 'history' && (
+                <div className="fade-in">
+                  <div className="panel">
+                    <div className="panel-title">Historical Record</div>
+                    <div className="timeline">
+                      {HISTORY.map((h, i) => (
+                        <div key={i} className="timeline-item">
+                          <div className="tl-date">{h.date}</div>
+                          <div className="tl-text">{h.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Pater Noster panel ── */}
+              {mode === 'pn' && (
+                <div className="fade-in">
+                  <div className="panel">
+                    <div className="panel-title">Pater Noster Theory (1926)</div>
+                    <p style={{fontSize:'0.82rem',color:'var(--worn)',lineHeight:1.6,marginBottom:'1rem'}}>
+                      The 25 letters of the square can be rearranged into a cross where
+                      <strong style={{color:'var(--glow)'}}> PATERNOSTER</strong> ("Our Father") appears twice —
+                      vertically and horizontally — with the remaining letters spelling <strong style={{color:'var(--glow)'}}>A O A O</strong>,
+                      representing <em>Alpha and Omega</em> (Revelation 1:8).
+                    </p>
+                    <div className="pn-cross">
+{`        A
+        P
+        A
+        T
+        E
+        R
+A-P-A-T-E-R-N-O-S-T-E-R-A
+        O
+        S
+        T
+        E
+        R
+        O`}
+                    </div>
+                    <div className="pn-remainder">
+                      Remaining letters: <strong>A · O · A · O</strong> — Alpha and Omega, beginning and end
+                    </div>
+                    <p style={{fontSize:'0.75rem',color:'var(--muted)',marginTop:'0.8rem',lineHeight:1.5,fontStyle:'italic'}}>
+                      Note: The N in PATERNOSTER appears only once in the grid, serving as the cross-centre.
+                      This theory predates the Pompeii discovery confirmation (1936), which showed the square
+                      was used before Christianity reached Pompeii.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Cipher panel ── */}
+              {mode === 'cipher' && (
+                <div className="fade-in">
+                  <div className="panel">
+                    <div className="panel-title">Positional Cipher</div>
+                    <p style={{fontSize:'0.8rem',color:'var(--worn)',marginBottom:'0.8rem',lineHeight:1.5}}>
+                      Each letter in the grid is encoded as its <strong style={{color:'var(--gold)'}}>row–column coordinate</strong> (0-indexed).
+                      Only the 8 grid letters (A E N O P R S T) can be encoded; other characters pass through unchanged.
+                      The highlighted cells on the grid show which positions are used.
+                    </p>
+
+                    <div className="cipher-label">Input Text</div>
+                    <input
+                      className="cipher-input"
+                      value={cipherText}
+                      onChange={e => setCipher(e.target.value)}
+                      placeholder="Type here…"
+                      maxLength={60}
+                    />
+
+                    <div className="cipher-label">Encoded (row·col pairs)</div>
+                    <div className="cipher-output">{encodeText(cipherText) || '—'}</div>
+
+                    <div style={{marginTop:'1rem'}}>
+                      <div className="panel-title">Position Map</div>
+                      <div style={{
+                        display:'grid', gridTemplateColumns:'repeat(4,1fr)',
+                        gap:'0.3rem', marginTop:'0.3rem'
+                      }}>
+                        {Object.entries(POSITION_MAP).sort().map(([ch,[r,c]]) => (
+                          <div key={ch} style={{
+                            background:'#0f0e09',border:'1px solid rgba(201,146,42,0.12)',
+                            padding:'0.3rem 0.5rem', fontFamily:'var(--ff-mono)',
+                            fontSize:'0.75rem', color:'var(--aged)'
+                          }}>
+                            <strong style={{color:'var(--glow)'}}>{ch}</strong>
+                            <span style={{color:'var(--muted)'}}> → </span>
+                            {r}{c}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+          {/* ── Bottom: about ─────────────────────────────────────────────── */}
+          <div className="ornament" style={{marginTop:'2rem'}}>· · ·</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'1rem', marginTop:'0.5rem'}}>
+            {[
+              ['~2,000 Years', 'Known history of the square, from Pompeii to the present day'],
+              ['8 Directions', 'The square reads identically left, right, up, down, and reversed'],
+              ['8 Letters', 'Only A E N O P R S T — the most constrained 5×5 word square possible'],
+            ].map(([num, desc]) => (
+              <div key={num} className="panel" style={{textAlign:'center'}}>
+                <div style={{
+                  fontFamily:'var(--ff-display)', fontSize:'1.4rem',
+                  color:'var(--glow)', fontWeight:700, letterSpacing:'0.05em'
+                }}>{num}</div>
+                <div style={{fontSize:'0.75rem',color:'var(--muted)',marginTop:'0.3rem',fontStyle:'italic'}}>{desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="footer">
+            <p>Sator · Arepo · Tenet · Opera · Rotas</p>
+            <p style={{marginTop:'0.3rem'}}>
+              "The sower Arepo holds the wheels with care." · c. 1st century CE
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
